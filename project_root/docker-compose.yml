@@ -1,0 +1,31 @@
+version: "3.9"
+
+services:
+  db:
+    image: postgres:16
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: energy_dashboard
+      POSTGRES_USER: dashboard_user
+      POSTGRES_PASSWORD: secure_password
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+
+  app:
+    build: .
+    restart: unless-stopped
+    environment:
+      DB_HOST: db
+      DB_PORT: 5432
+      DB_NAME: energy_dashboard
+      DB_USER: dashboard_user
+      DB_PASSWORD: secure_password
+    ports:
+      - "8501:8501"
+    depends_on:
+      - db
+
+volumes:
+  pgdata:

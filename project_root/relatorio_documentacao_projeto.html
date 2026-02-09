@@ -1,0 +1,1452 @@
+<!doctype html>
+<html lang='pt-BR'>
+<head>
+<meta charset='utf-8'/>
+<meta name='viewport' content='width=device-width, initial-scale=1'/>
+<title>Relatorio TCC v2 - Dashboard Energetico Brasileiro</title>
+<style>
+:root {
+  --bg: #0F1722;
+  --panel: rgba(15,23,34,0.72);
+  --panel2: rgba(15,23,34,0.48);
+  --border: rgba(148,163,184,0.18);
+  --text: #F5F7FA;
+  --muted: rgba(245,247,250,0.72);
+  --muted2: rgba(245,247,250,0.56);
+
+  --elec-blue: #00F3FF;
+  --energy-purple: #7B61FF;
+  --grid-green: #00FFA3;
+  --alert-amber: #FFB800;
+  --critical-red: #FF2E5F;
+
+  --mono: 'JetBrains Mono', ui-monospace, Menlo, Consolas, monospace;
+  --sans: 'Inter', ui-sans-serif, system-ui, -apple-system, sans-serif;
+  --radius: 14px;
+  --shadow: 0 22px 60px rgba(0,0,0,0.55);
+}
+* { box-sizing: border-box; }
+body {
+  margin: 0;
+  font-family: var(--sans);
+  color: var(--text);
+  background:
+    radial-gradient(circle at 20% 50%, rgba(0, 243, 255, 0.035) 0%, transparent 55%),
+    radial-gradient(circle at 80% 20%, rgba(123, 97, 255, 0.038) 0%, transparent 55%),
+    linear-gradient(180deg, #070B12, var(--bg));
+}
+.container { max-width: 1200px; margin: 0 auto; padding: 24px; }
+.header {
+  border: 1px solid var(--border);
+  border-radius: 18px;
+  background: linear-gradient(135deg, rgba(15,23,34,0.92), rgba(15,23,34,0.68));
+  box-shadow: var(--shadow);
+  padding: 20px 22px;
+}
+.h-title {
+  font-size: 2.25rem;
+  font-weight: 900;
+  letter-spacing: -0.02em;
+  background: linear-gradient(90deg, var(--elec-blue), var(--energy-purple));
+  -webkit-background-clip: text;
+  color: transparent;
+}
+.h-sub { margin-top: 8px; color: var(--muted); line-height: 1.45; }
+.badges { margin-top: 10px; display: flex; flex-wrap: wrap; gap: 10px; }
+.badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 10px;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  background: rgba(2,6,23,0.30);
+  color: var(--muted);
+  font-size: 0.78rem;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+.toc details {
+  margin-top: 14px;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: rgba(15,23,34,0.40);
+  padding: 10px 12px;
+}
+.toc a { color: var(--elec-blue); text-decoration: none; }
+.toc li { margin: 6px 0; color: var(--muted); }
+.section {
+  margin-top: 18px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--panel);
+  padding: 16px 18px;
+}
+.section h2 { margin: 0 0 10px 0; font-size: 1.35rem; }
+.section h3 { margin: 16px 0 8px 0; font-size: 1.1rem; color: #E9EEF5; }
+.section p, .section li { color: var(--muted); line-height: 1.65; }
+.grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 12px; }
+.card { background: var(--panel2); border: 1px solid var(--border); border-radius: 12px; padding: 12px; }
+.kv { display: flex; justify-content: space-between; gap: 10px; font-size: 0.95rem; }
+.kv span { color: var(--muted2); }
+.note {
+  border-left: 3px solid var(--alert-amber);
+  padding: 10px 12px;
+  background: rgba(255,184,0,0.08);
+  border-radius: 10px;
+  color: var(--muted);
+}
+.mock {
+  margin-top: 10px;
+  border: 1px solid rgba(255,255,255,0.10);
+  border-radius: 14px;
+  background: rgba(2,6,23,0.28);
+  padding: 12px;
+}
+.mock .bar {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 10px 12px;
+  border-radius: 12px;
+  background: linear-gradient(90deg, rgba(0,243,255,0.10), rgba(123,97,255,0.10));
+  border: 1px solid rgba(148,163,184,0.18);
+}
+.mock .bar .t { font-weight: 900; color: #e5e7eb; }
+.mock .chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 10px;
+  border-radius: 999px;
+  border: 1px solid rgba(148,163,184,0.18);
+  background: rgba(2,6,23,0.35);
+  font-size: 0.78rem;
+  color: #e5e7eb;
+}
+.dot { width: 10px; height: 10px; border-radius: 999px; display: inline-block; }
+.dot.good { background: var(--grid-green); }
+.dot.warn { background: var(--alert-amber); }
+.dot.bad { background: var(--critical-red); }
+.dot.ctx { background: var(--text); }
+.arrow { font-family: var(--mono); font-weight: 900; }
+.arrow.up { color: var(--grid-green); }
+.arrow.down { color: var(--critical-red); }
+.arrow.stable { color: var(--energy-purple); }
+pre {
+  background: #0b111b;
+  border: 1px solid rgba(255,255,255,0.08);
+  border-radius: 10px;
+  padding: 12px;
+  overflow: auto;
+}
+code { font-family: var(--mono); font-size: 0.86rem; color: #E5E7EB; }
+.table { width: 100%; border-collapse: collapse; }
+.table th, .table td { border-bottom: 1px solid rgba(255,255,255,0.08); padding: 8px 10px; text-align: left; vertical-align: top; }
+.table th { color: var(--elec-blue); font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em; font-size: 0.85rem; }
+.table td { color: var(--muted); font-size: 0.92rem; }
+.footer { margin: 20px 0 10px 0; color: var(--muted2); font-size: 0.85rem; }
+@media print {
+  body { background: white; color: black; }
+  .header, .section, .toc details { box-shadow: none !important; }
+}
+</style>
+</head>
+<body>
+<div class='container'>
+  <div class='header'>
+    <div class='h-title'>Relatorio de Documentacao (TCC) — Dashboard Energetico Brasileiro</div>
+    <div class='h-sub'>Documento tecnico com explicacao detalhada dos modulos do dashboard, logicas de analise (cores, setas, filtros), e do uso de Prophet/SARIMAX para previsao e imputacao em series de preco BBCE.</div>
+    <div class='badges'>
+      <span class='badge'>Gerado em 2026-02-01 17:10:18</span>
+      <span class='badge'>Base: codigo do projeto e comportamento do dashboard</span>
+    </div>
+  </div>
+
+  <div class='toc'>
+    <details open>
+      <summary><strong>Indice</strong></summary>
+      <ol>
+        <li><a href='#1-sumario-executivo'>Sumario Executivo</a></li><li><a href='#2-visao-geral-do-dashboard'>Visao Geral do Dashboard</a></li><li><a href='#3-modulo-cabecalho-e-seletor-de-semana'>Modulo: Cabecalho e Seletor de Semana</a></li><li><a href='#4-modulo-cenario-energetico'>Modulo: Cenario Energetico</a></li><li><a href='#5-modulo-precos-medios-bbce-r-mwh'>Modulo: Precos Medios BBCE (R$/MWh)</a></li><li><a href='#6-modulo-evolucao-da-geracao-e-intercambio-historico'>Modulo: Evolucao da Geracao e Intercambio (historico)</a></li><li><a href='#7-metodologias-e-regras-de-analise-cores-setas-filtros'>Metodologias e Regras de Analise (cores, setas, filtros)</a></li><li><a href='#8-modelos-de-machine-learning-prophet-e-sarimax-e-uso-no-dashboard'>Modelos de Machine Learning (Prophet e SARIMAX) e uso no dashboard</a></li><li><a href='#9-limitacoes-e-trabalhos-futuros'>Limitacoes e Trabalhos Futuros</a></li>
+      </ol>
+    </details>
+  </div>
+<div class='section' id='1-sumario-executivo'><h2>1. Sumario Executivo</h2>
+<p>Este relatorio explica, em profundidade, os modulos do <strong>dashboard Streamlit</strong> do projeto, cobrindo:</p>
+<ul>
+  <li>O que cada modulo representa no contexto do setor eletrico (BSO/ONS, BBCE, PLD/CMO e bandeiras tarifarias).</li>
+  <li>Como cada visualizacao foi implementada (consultas SQL, processamento e renderizacao).</li>
+  <li>Como interpretar as cores, setas de tendencia, tabelas e graficos.</li>
+  <li>Como modelos Prophet/SARIMAX sao utilizados (previsao e imputacao/limpeza de series para visualizacao).</li>
+</ul>
+<div class='grid'>
+  <div class='card'><div class='kv'><strong>Entrada</strong><span>CSV -> processamento -> banco</span></div></div>
+  <div class='card'><div class='kv'><strong>Saida</strong><span>Streamlit (tabelas, graficos Plotly, mapa)</span></div></div>
+  <div class='card'><div class='kv'><strong>Analise</strong><span>cores por faixas + tendencias + historicos</span></div></div>
+  <div class='card'><div class='kv'><strong>ML</strong><span>Prophet/SARIMAX (baseline)</span></div></div>
+</div>
+</div><div class='section' id='2-visao-geral-do-dashboard'><h2>2. Visao Geral do Dashboard</h2>
+<p>O dashboard tem como objetivo oferecer uma visao integrada do <strong>cenario operativo</strong> e do <strong>mercado</strong> (precos BBCE), permitindo:</p>
+<ul>
+  <li><strong>Contexto operativo</strong>: ENA/EAR (hidrologia/armazenamento), carga, CMO/PLD (custo e preco operacional).</li>
+  <li><strong>Mercado (BBCE)</strong>: comportamento de contratos (ANU/SEM/TRI) em uma janela historica de 10 semanas.</li>
+  <li><strong>Historico</strong>: evolucao da geracao por fonte e despacho termico (10 semanas) + mapa de intercambio por subsistema.</li>
+</ul>
+<p>O elemento central de interatividade e a <strong>Semana operativa</strong>, que atua como referencia temporal: ao altera-la, os modulos recalculam/recortam dados e atualizam as visualizacoes.</p>
+</div><div class='section' id='3-modulo-cabecalho-e-seletor-de-semana'><h2>3. Modulo: Cabecalho e Seletor de Semana</h2>
+<p><strong>O que e:</strong> o cabecalho e o ponto de orientacao do usuario. Ele apresenta titulo, fontes, ultima atualizacao e um widget de <strong>bandeira tarifaria</strong> (ban.csv) para o mes correspondente a semana selecionada.</p>
+
+<h3>Semana operativa (controle principal)</h3>
+<ul>
+  <li><strong>Implementacao:</strong> seletor via <code>render_selectors()</code> em <code>src/visualization/components.py</code> e uso em <code>dashboard.py</code>.</li>
+  <li><strong>Regra:</strong> a semana selecionada define <code>base_week_start</code> / <code>base_week_end</code> a partir dos dados BSO (tabela <code>bso_data</code>).</li>
+  <li><strong>Efeito:</strong> esse recorte controla Cenario Energetico, Precos BBCE (janela 10 semanas) e Evolucao (10 semanas).</li>
+</ul>
+
+<div class='mock'>
+  <div class='bar'>
+    <div>
+      <div class='t'>Dashboard Energetico Brasileiro</div>
+      <div style='color: var(--muted); margin-top:4px'>Cenario eletrico, precos BBCE e indicadores operativos</div>
+    </div>
+    <div style='display:flex; flex-direction:column; gap:8px; align-items:flex-end'>
+      <div class='chip'><span class='dot warn'></span>Bandeira: Amarela</div>
+      <div class='chip'>Semana operativa: 27/12/2025 a 02/01/2026</div>
+    </div>
+  </div>
+  <div style='margin-top:10px; display:flex; gap:10px; flex-wrap:wrap'>
+    <span class='chip'>Fontes: ONS / CCEE / BBCE</span>
+    <span class='chip'>Atualizacao: (data_inicio max)</span>
+  </div>
+</div>
+
+
+<h3>Bandeira tarifaria (ban.csv)</h3>
+<ul>
+  <li><strong>Objetivo:</strong> contextualizar o custo tarifario (adicional mensal) vigente no periodo.</li>
+  <li><strong>Ingestao:</strong> <code>process_ban()</code> processa colunas <code>DatCompetencia</code>, <code>NomBandeiraAcionada</code> e <code>VlrAdicionalBandeira</code> e persiste em <code>ban_data</code>.</li>
+  <li><strong>Selecao:</strong> <code>get_bandeira_for_date()</code> busca a bandeira do mes (competencia) referente a data de inicio da semana operativa.</li>
+  <li><strong>Interpretacao:</strong>
+    <ul>
+      <li>Verde: custo adicional 0 (condicoes favoraveis).</li>
+      <li>Amarela: adicional moderado (sinal de atencao).</li>
+      <li>Vermelha (P1/P2): adicional alto (condicoes desfavoraveis).</li>
+    </ul>
+  </li>
+</ul>
+
+<h3>Mapeamento para o codigo</h3>
+<pre><code class='language-python'>def render_header(last_update: str | None = None, *, bandeira: dict | None = None, week_range: str | None = None) -&gt; None:
+    """
+    Keep the original (stable) hero header layout and only add the tariff flag widget on the right.
+    """
+    meta = []
+    if last_update:
+        meta.append(f"Última atualização: {last_update}")
+    if week_range:
+        meta.append(f"Semana operativa: {week_range}")
+    meta.append("Fontes: ONS, CCEE, BBCE")
+
+    flag_html = ""
+    if bandeira:
+        nome = str(bandeira.get("bandeira") or "").strip() or "—"
+        adicional = bandeira.get("adicional")
+        comp = bandeira.get("competencia")
+        key = nome.lower()
+        color = "#16a34a"  # Verde
+        if "amarela" in key:
+            color = "#FFB800"
+        elif "vermelha" in key or "p1" in key:
+            color = "#FF2E5F"
+        elif "p2" in key:
+            color = "#fb7185"
+
+        add_txt = ""
+        if adicional is not None and not pd.isna(adicional):
+            try:
+                add_txt = f"+ R$ {float(adicional):.2f}".replace(".", ",")
+            except Exception:
+                add_txt = f"+ R$ {adicional}"
+        month_txt = f"{pd.to_datetime(comp).date():%m/%Y}" if comp else ""
+
+        flag_html = f"""
+&lt;div class="flag-wrap" title="Bandeira tarifária ({month_txt})"&gt;
+  &lt;div class="flag-top"&gt;
+    &lt;div class="flag-pole" aria-hidden="true"&gt;&lt;/div&gt;
+    &lt;div class="tariff-flag" style="--flag-color:{color}" aria-hidden="true"&gt;&lt;/div&gt;
+  &lt;/div&gt;
+  &lt;div class="flag-label"&gt;{nome}&lt;/div&gt;
+  &lt;div class="flag-sub"&gt;{add_txt}&lt;/div&gt;
+&lt;/div&gt;
+"""
+
+    right = f'&lt;div class="hero-right"&gt;{flag_html}&lt;/div&gt;' if flag_html else ""
+
+    st.markdown(
+        f"""
+&lt;div class="hero"&gt;
+  &lt;div class="hero-row"&gt;
+    &lt;div class="hero-left"&gt;
+      &lt;div class="hero-title"&gt;Dashboard Energético Brasileiro&lt;/div&gt;
+      &lt;div class="hero-sub"&gt;Cenário elétrico, preços BBCE e indicadores operativos com visual premium.&lt;/div&gt;
+      &lt;div class="hero-meta"&gt;
+        {''.join([f'&lt;div class=\"chip\"&gt;{m}&lt;/div&gt;' for m in meta])}
+      &lt;/div&gt;
+    &lt;/div&gt;
+    {right}
+  &lt;/div&gt;
+&lt;/div&gt;
+""",
+        unsafe_allow_html=True,
+    )</code></pre>
+<pre><code class='language-python'>def render_selectors(weeks: list[str], products: list[str], *, show_product: bool = True) -&gt; tuple[str, str]:
+    if show_product:
+        # Slightly wider week selector.
+        col1, col2 = st.columns([2.6, 1.4])
+        with col1:
+            week = st.selectbox("Semana operativa", weeks, index=0)
+        with col2:
+            product = st.selectbox("Produto BBCE", products, index=0)
+        return week, product
+
+    # When Module 1 is disabled we hide the product selector but keep the return signature.
+    # Make the selector ~30% wider without taking the full row.
+    col1, col2 = st.columns([1.3, 3.7])
+    with col1:
+        week = st.selectbox("Semana operativa", weeks, index=0)
+    with col2:
+        st.markdown("&lt;div style='height:1px'&gt;&lt;/div&gt;", unsafe_allow_html=True)
+    product = products[0] if products else ""
+    return week, product</code></pre>
+<pre><code class='language-python'>def process_ban(path: Path) -&gt; pd.DataFrame:
+    """
+    ANEEL bandeira tarifaria (mensal).
+
+    Expected columns (raw): DatGeracaoConjuntoDados, DatCompetencia, NomBandeiraAcionada, VlrAdicionalBandeira
+    """
+    df = normalize_columns(load_csv(path))
+    require_columns(
+        df,
+        ["datcompetencia", "nombandeiraacionada", "vlradicionalbandeira"],
+        "ban",
+    )
+
+    # Brazilian format is dd/mm/yyyy (dayfirst=True) and is ambiguous for 01/12/2025.
+    df["datcompetencia"] = pd.to_datetime(df["datcompetencia"], errors="coerce", dayfirst=True).dt.date
+    if "datgeracaoconjuntodados" in df.columns:
+        df["datgeracaoconjuntodados"] = pd.to_datetime(df["datgeracaoconjuntodados"], errors="coerce", dayfirst=True).dt.date
+
+    df = coerce_numeric(df, ["vlradicionalbandeira"])
+    df = df.rename(
+        columns={
+            "datgeracaoconjuntodados": "data_geracao",
+            "datcompetencia": "competencia",
+            "nombandeiraacionada": "bandeira",
+            "vlradicionalbandeira": "adicional",
+        }
+    )
+    df["bandeira"] = df["bandeira"].astype(str).str.strip()
+    df = drop_duplicates(df, ["competencia"])
+    return df.dropna(subset=["competencia"])</code></pre>
+<pre><code class='language-python'>def get_bandeira_for_date(d: _date) -&gt; dict | None:
+    """
+    Returns the tariff flag record for the month of the provided date.
+
+    Selection logic:
+      - pick the latest competencia &lt;= month_start (helps when some months are missing)
+    """
+    if not _table_exists("ban_data"):
+        return None
+
+    month_start = _date(d.year, d.month, 1)
+    sql = text(
+        """
+        SELECT competencia, bandeira, adicional
+        FROM ban_data
+        WHERE competencia &lt;= :month_start
+        ORDER BY competencia DESC
+        LIMIT 1
+        """
+    )
+    df = pd.read_sql(sql, engine, params={"month_start": month_start})
+    if df.empty:
+        return None
+    row = df.iloc[0].to_dict()
+    row["competencia"] = pd.to_datetime(row["competencia"]).date() if row.get("competencia") else month_start
+    return row</code></pre>
+</div><div class='section' id='4-modulo-cenario-energetico'><h2>4. Modulo: Cenario Energetico</h2>
+<p><strong>O que e:</strong> um painel comparativo por subsistema (SE/CO, Sul, Nordeste, Norte) com 3 colunas de semanas (S-2, S-1, S) e 5 indicadores: ENA, EAR, CARGA, CMOmed e PLDmed.</p>
+
+<p><strong>Para que serve:</strong> permitir leitura rapida do estado hidrologico e economico-operativo e da evolucao semanal, sem exigir que o usuario navegue por multiplos relatorios.</p>
+
+
+<div class='mock'>
+  <div class='bar'>
+    <div class='t'>Cenario Energetico</div>
+    <div style='display:flex; gap:10px; flex-wrap:wrap'>
+      <span class='chip'><span class='dot good'></span>Bom</span>
+      <span class='chip'><span class='dot warn'></span>Atencao</span>
+      <span class='chip'><span class='dot bad'></span>Critico</span>
+      <span class='chip'><span class='dot ctx'></span>Contextual</span>
+      <span class='chip'><span class='arrow up'>▲</span> Melhora</span>
+      <span class='chip'><span class='arrow down'>▼</span> Piora</span>
+      <span class='chip'><span class='arrow stable'>◀</span> Estavel</span>
+    </div>
+  </div>
+  <div style='margin-top:10px; display:grid; grid-template-columns: repeat(2, minmax(0,1fr)); gap:12px'>
+    <div class='card'>
+      <div style='font-weight:800; color:#e5e7eb'>Sudeste/Centro-Oeste</div>
+      <div style='margin-top:8px; font-family:var(--mono); color:var(--muted)'>ENA/EAR/CARGA/CMO/PLD em 3 semanas (S-2, S-1, S)</div>
+    </div>
+    <div class='card'>
+      <div style='font-weight:800; color:#e5e7eb'>Sul</div>
+      <div style='margin-top:8px; font-family:var(--mono); color:var(--muted)'>mesma estrutura</div>
+    </div>
+  </div>
+</div>
+
+
+<h3>Metodologia de cores (classificacao por faixa)</h3>
+<p>As cores sao aplicadas por indicador com thresholds distintos (do proprio codigo):</p>
+<table class='table'>
+  <tr><th>Indicador</th><th>Faixa Critica</th><th>Faixa Atencao</th><th>Faixa Contextual/Referencia</th><th>Faixa Boa</th></tr>
+  <tr><td>ENA (%MLT)</td><td>&lt; 30</td><td>30–50</td><td>50–80</td><td>&ge; 80</td></tr>
+  <tr><td>EAR (%EARmax)</td><td>&lt; 30</td><td>30–40</td><td>40–60</td><td>&ge; 60</td></tr>
+  <tr><td>CMOmed / PLDmed (R$/MWh)</td><td>&ge; 300</td><td>200–300</td><td>—</td><td>&lt; 200</td></tr>
+  <tr><td>CARGA (MWm)</td><td colspan='4'>Contextual (exibe valor em branco para referencia)</td></tr>
+</table>
+
+<h3>Metodologia de setas de tendencia</h3>
+<p>Para cada celula do periodo, calcula-se:</p>
+<pre><code class='language-text'>Δ = valor(semana_atual) − valor(semana_anterior)</code></pre>
+<p>O simbolo e a interpretacao dependem do tipo do indicador:</p>
+<ul>
+  <li><strong>ENA/EAR (maior e melhor):</strong> Δ &gt; 0 = melhora (▲), Δ &lt; 0 = piora (▼), Δ ≈ 0 = estavel (◀).</li>
+  <li><strong>CMO/PLD (menor e melhor):</strong> a interpretacao e invertida (queda de preco/custo = melhora).</li>
+  <li><strong>CARGA:</strong> interpretacao contextual (apenas mostra direcao, sem juizo de “melhor/pior”).</li>
+</ul>
+
+<h3>Como interpretar (exemplo)</h3>
+<ul>
+  <li>Se ENA em SE/CO passa de 55 para 74: Δ = +19 → ▲ (melhora) e cor contextual/boa conforme faixa.</li>
+  <li>Se PLDmed passa de 270 para 152: Δ = -118 → para PLD (menor e melhor), isso representa melhora.</li>
+</ul>
+
+<h3>Mapeamento para o codigo</h3>
+<pre><code class='language-python'>    def _value_color(key: str, v: float | None) -&gt; str:
+        if v is None or pd.isna(v):
+            return "var(--muted)"
+        x = float(v)
+        if key == "ena":
+            if x &lt; 30:
+                return "var(--critical-red)"
+            if x &lt; 50:
+                return "var(--alert-amber)"
+            if x &lt; 80:
+                # Contextual/reference band -&gt; white for readability.
+                return "var(--text)"
+            return "var(--grid-green)"
+        if key == "ear":
+            if x &lt; 30:
+                return "var(--critical-red)"
+            if x &lt; 40:
+                return "var(--alert-amber)"
+            if x &lt; 60:
+                # Contextual/reference band -&gt; white for readability.
+                return "var(--text)"
+            return "var(--grid-green)"
+        if key in ("cmo", "pld"):
+            if x &lt; 200:
+                return "var(--grid-green)"
+            if x &lt; 300:
+                return "var(--alert-amber)"
+            return "var(--critical-red)"
+        # carga contextual
+        return "var(--text)"</code></pre>
+<pre><code class='language-python'>def _trend_icon(delta: float | None, *, better_high: bool | None) -&gt; tuple[str, str]:
+    """
+    Returns (symbol, class) where class maps to CSS animations/colors.
+    better_high:
+      - True: higher is better (ENA/EAR)
+      - False: lower is better (CMO/PLD)
+      - None: contextual/neutral (CARGA)
+    """
+    if delta is None or pd.isna(delta):
+        return ("", "trend-none")
+    d = float(delta)
+    if abs(d) &lt; 1e-6:
+        return ("◀", "trend-stable")
+
+    # For lower-is-better metrics, invert interpretation.
+    sign = d if (better_high is not False) else -d
+    if sign &gt; 0:
+        return ("▲", "trend-up")
+    return ("▼", "trend-down")</code></pre>
+</div><div class='section' id='5-modulo-precos-medios-bbce-r-mwh'><h2>5. Modulo: Precos Medios BBCE (R$/MWh)</h2>
+<p><strong>O que e:</strong> um modulo de analise de mercado baseado em contratos BBCE (ANU/SEM/TRI), exibidos em uma janela historica de 10 semanas operativas.</p>
+
+<p><strong>Para que serve:</strong> (1) comparar curvas de precos entre contratos; (2) identificar mudancas de tendencia; (3) reduzir ruido (baixa liquidez) via limpeza e imputacao para nao “poluir” a leitura grafica.</p>
+
+
+<div class='mock'>
+  <div class='bar'>
+    <div class='t'>Precos Medios BBCE (R$/MWh)</div>
+    <div style='display:flex; gap:10px; flex-wrap:wrap'>
+      <span class='chip'><span class='dot good'></span>&lt; 200 (zona ideal)</span>
+      <span class='chip'><span class='dot warn'></span>220–260 (zona media)</span>
+      <span class='chip'><span class='dot bad'></span>&gt;= 260 (zona risco)</span>
+      <span class='chip'><span style='color: var(--critical-red); font-weight:900'>*</span> valor imputado</span>
+      <span class='chip'><span class='arrow up'>▲</span>/<span class='arrow down'>▼</span>/<span class='arrow stable'>◀</span> tendencia semanal</span>
+    </div>
+  </div>
+  <div style='margin-top:10px' class='card'>
+    <div style='font-weight:800; color:#e5e7eb'>Tabela (contratos x semanas)</div>
+    <div style='margin-top:6px; color:var(--muted); font-family:var(--mono)'>Cada linha = um contrato (ANU/SEM/TRI). Cada coluna = semana operativa. Celulas coloridas por faixa de preco. Clique abre pagina de detalhe do produto.</div>
+  </div>
+</div>
+
+
+<h3>Como os dados sao construidos (do CSV ao grafico)</h3>
+<ol>
+  <li><strong>Base diaria</strong> (bbce.csv) e carregada no banco como <code>bbce_data</code> (preco medio diario por produto) e <code>bbce_trades</code> (distribuicao por nivel de preco com <code>qtd</code> como proxy de volume diario).</li>
+  <li><strong>Conversao para semanas operativas</strong>: cada data e mapeada para o sabado de inicio da semana (regra: semana operativa = sabado→sexta).</li>
+  <li><strong>Agregacao semanal</strong>: calcula-se o preco medio semanal por produto, com filtros robustos contra outliers.</li>
+  <li><strong>Imputacao</strong>: semanas sem negociacao (ou marcadas como ruido) sao preenchidas para manter continuidade visual e permitir leitura de tendencia.</li>
+  <li><strong>Marcacao</strong>: valores imputados recebem <strong>*</strong> vermelho na tabela e marcadores especiais no grafico.</li>
+</ol>
+
+<h3>Metodologia de limpeza de ruido (por que existe)</h3>
+<p>O mercado BBCE pode ter semanas com <strong>baixa liquidez</strong> (poucas negociacoes). Um unico negocio “fora” pode puxar a media e criar saltos irrealistas. O dashboard implementa 3 camadas principais:</p>
+<ul>
+  <li><strong>Media semanal robusta</strong> (mediana/MAD ou IQR) antes de consolidar o preco semanal.</li>
+  <li><strong>Filtros de spikes</strong> (pontos isolados e oscilacoes de 2 semanas) que removem saltos nao persistentes.</li>
+  <li><strong>Supressao por baixa liquidez</strong>: se <code>negociacoes <= 3</code> e o preco foge do padrao da semana (por exemplo, > 1 desvio padrao da media semanal), o ponto e removido e imputado.</li>
+</ul>
+
+<h3>Metodologia de imputacao (preenchimento)</h3>
+<p>Para semanas faltantes/removidas, utiliza-se:</p>
+<ol>
+  <li>Interpolacao (baseline) para preencher de forma suave.</li>
+  <li>Se houver dados suficientes, um <strong>SARIMAX</strong> simples sobre a serie semanal para estimar os pontos faltantes ("ML-ish imputation").</li>
+  <li>Depois, aplica-se <strong>clamp</strong> para manter os valores imputados em uma banda razoavel baseada na distribuicao observada do produto.</li>
+</ol>
+
+<h3>Como interpretar a tabela e o grafico</h3>
+<ul>
+  <li><strong>Cores na celula</strong> sinalizam regime de preco (zona ideal/risco).</li>
+  <li><strong>Setas na celula</strong> mostram tendencia vs semana anterior (▲ alta, ▼ queda, ◀ estavel).</li>
+  <li><strong>* vermelho</strong> indica que naquela semana o valor foi imputado (sem negociacao suficiente ou ruido removido).</li>
+  <li><strong>Clique no contrato</strong> abre pagina de detalhe com grafico diario (candles), volume e RSI.</li>
+</ul>
+
+<h3>Mapeamento para o codigo</h3>
+<p>Serie semanal + filtros + imputacao:</p>
+<pre><code class='language-python'>def _bbce_weekly_series(df: pd.DataFrame, anchor_week_start: date, *, weeks_back: int = 10) -&gt; pd.DataFrame:
+    data = df.copy()
+    data["data"] = pd.to_datetime(data["data"])
+    data["preco"] = pd.to_numeric(data["preco"], errors="coerce")
+    # Normalize BBCE scale issues in legacy data (values ~1000-1999.9 are typically 10x too large).
+    mask_10x = data["preco"].between(1000, 2000, inclusive="left")
+    data.loc[mask_10x, "preco"] = data.loc[mask_10x, "preco"] / 10.0
+    data.loc[data["preco"] &lt;= 0, "preco"] = pd.NA
+    data = data.dropna(subset=["preco"])
+    data["week_start"] = data["data"].apply(_week_start_saturday)
+
+    # Clean per-week product trades before averaging (removes single weird trades pulling the mean).
+    def _clean_week_mean(s: pd.Series) -&gt; float:
+        v = pd.to_numeric(s, errors="coerce").dropna().astype(float)
+        if v.empty:
+            return float("nan")
+        if len(v) &lt;= 2:
+            # For tiny samples, use median (prevents 1 weird print dominating).
+            return float(v.median())
+        med = float(v.median())
+        mad = float((v - med).abs().median())
+        if mad &gt; 0:
+            keep = (v - med).abs() &lt;= 3.5 * mad
+            vv = v[keep]
+            return float(vv.mean()) if not vv.empty else float(med)
+        q1 = float(v.quantile(0.25))
+        q3 = float(v.quantile(0.75))
+        iqr = q3 - q1
+        if iqr &gt; 0:
+            keep = (v &gt;= q1 - 3.0 * iqr) &amp; (v &lt;= q3 + 3.0 * iqr)
+            vv = v[keep]
+            return float(vv.mean()) if not vv.empty else float(med)
+        return float(v.mean())
+
+    weekly = (
+        data.groupby(["produto", "week_start"], as_index=False)
+        .agg(preco=("preco", _clean_week_mean), n=("preco", "size"))
+        .dropna(subset=["preco"])
+    )
+
+    # We display the last N operational weeks, but we include a couple extra weeks for
+    # outlier detection (helps catch spikes on the first visible week).
+    weeks_back = int(weeks_back)
+    if weeks_back &lt;= 0:
+        weeks_back = 10
+    extra_weeks = 2
+    weeks_all = pd.date_range(
+        start=pd.Timestamp(anchor_week_start) - pd.Timedelta(weeks=weeks_back + extra_weeks - 1),
+        end=pd.Timestamp(anchor_week_start),
+        freq="7D",
+    )
+    weeks = weeks_all[-weeks_back:]
+
+    # Week-level stats across products for outlier detection.
+    week_stats = weekly.groupby("week_start")["preco"].agg(["mean", "std"]).reset_index().set_index("week_start")
+
+    frames = []
+    for produto in weekly["produto"].unique():
+        wdf = weekly[weekly["produto"] == produto].set_index("week_start")
+        s = wdf["preco"].reindex(weeks_all)
+        n = wdf["n"].reindex(weeks_all)
+        missing = s.isna()
+
+        # Hampel-style robust filter (rolling median/MAD) to remove clear spikes even when volume isn't tiny.
+        ser = s.astype(float).copy()
+        roll_med = ser.rolling(window=7, center=True, min_periods=5).median()
+        roll_mad = (ser - roll_med).abs().rolling(window=7, center=True, min_periods=5).median()
+        for wk in weeks_all:
+            if pd.isna(s.loc[wk]):
+                continue
+            ni = n.loc[wk]
+            # Don't touch very high-volume points.
+            if pd.notna(ni) and float(ni) &gt;= 20:
+                continue
+            mr = roll_med.loc[wk]
+            mad = roll_mad.loc[wk]
+            if pd.isna(mr) or pd.isna(mad) or float(mad) &lt;= 0:
+                continue
+            gap = abs(float(s.loc[wk]) - float(mr))
+            if gap &gt; 4.0 * float(mad) and gap &gt;= max(0.30 * float(mr), 60.0):
+                s.loc[wk] = pd.NA
+                missing.loc[wk] = True
+
+        # Spike filter: remove isolated jumps that don't persist (typical noise/outliers).
+        # This targets cases like a single week spiking up/down while neighbors stay near each other.
+        for i in range(1, len(weeks_all) - 1):
+            wk = weeks_all[i]
+            prev_wk = weeks_all[i - 1]
+            next_wk = weeks_all[i + 1]
+            if pd.isna(s.loc[wk]) or pd.isna(s.loc[prev_wk]) or pd.isna(s.loc[next_wk]):
+                continue
+            # Be conservative for higher-volume weeks.
+            n_i = n.loc[wk]
+            if pd.notna(n_i) and float(n_i) &gt; 10:
+                continue
+            prev_v = float(s.loc[prev_wk])
+            next_v = float(s.loc[next_wk])
+            cur_v = float(s.loc[wk])
+            neigh_med = float(pd.Series([prev_v, next_v]).median())
+            if neigh_med &lt;= 0:
+                continue
+            neigh_gap = abs(prev_v - next_v)
+            spike_gap = abs(cur_v - neigh_med)
+            # Neighbors are close, but current point is far (relative + absolute guard).
+            if neigh_gap &lt;= max(0.12 * neigh_med, 20.0) and spike_gap &gt;= max(0.30 * neigh_med, 60.0):
+                s.loc[wk] = pd.NA
+                missing.loc[wk] = True
+
+        # Two-week oscillation filter: remove high/low pairs that "bounce" back to baseline.
+        # Example: baseline -&gt; (high, low) -&gt; baseline.
+        for i in range(1, len(weeks_all) - 2):
+            wk0 = weeks_all[i - 1]
+            wk1 = weeks_all[i]
+            wk2 = weeks_all[i + 1]
+            wk3 = weeks_all[i + 2]
+            if pd.isna(s.loc[wk0]) or pd.isna(s.loc[wk1]) or pd.isna(s.loc[wk2]) or pd.isna(s.loc[wk3]):
+                continue
+            n1 = n.loc[wk1]
+            n2 = n.loc[wk2]
+            if pd.notna(n1) and float(n1) &gt; 10:
+                continue
+            if pd.notna(n2) and float(n2) &gt; 10:
+                continue
+            base = float(pd.Series([float(s.loc[wk0]), float(s.loc[wk3])]).median())
+            if base &lt;= 0:
+                continue
+            base_gap = abs(float(s.loc[wk0]) - float(s.loc[wk3]))
+            d1 = abs(float(s.loc[wk1]) - base)
+            d2 = abs(float(s.loc[wk2]) - base)
+            osc = abs(float(s.loc[wk1]) - float(s.loc[wk2]))
+            if base_gap &lt;= max(0.15 * base, 30.0) and max(d1, d2) &gt;= max(0.30 * base, 60.0) and osc &gt;= max(0.35 * base, 80.0):
+                s.loc[wk1] = pd.NA
+                s.loc[wk2] = pd.NA
+                missing.loc[wk1] = True
+                missing.loc[wk2] = True
+
+        # Outlier suppression: low-volume (&lt;=3) weeks outside 1 std are replaced via imputation.
+        for wk in weeks_all:
+            if pd.isna(s.loc[wk]) or pd.isna(n.loc[wk]):
+                continue
+            if float(n.loc[wk]) &gt; 3:
+                continue
+            if wk not in week_stats.index:
+                continue
+            mu = week_stats.loc[wk, "mean"]
+            sigma = week_stats.loc[wk, "std"]
+            if pd.isna(sigma) or float(sigma) &lt;= 0:
+                continue
+            if abs(float(s.loc[wk]) - float(mu)) &gt; float(sigma):
+                s.loc[wk] = pd.NA
+                missing.loc[wk] = True
+
+        # Additional robust filter: if a low-volume point is far from the product's typical level,
+        # treat it as noise and impute it (helps remove isolated spikes/dips).
+        obs0 = s.dropna().astype(float)
+        if not obs0.empty and len(obs0) &gt;= 6:
+            med = float(obs0.median())
+            mad = float((obs0 - med).abs().median())
+            # If MAD collapses to ~0, fallback to std-based filtering.
+            if mad &gt; 0:
+                thr = 3.5 * mad
+                for wk in weeks_all:
+                    if pd.isna(s.loc[wk]) or pd.isna(n.loc[wk]):
+                        continue
+                    if float(n.loc[wk]) &gt; 3:
+                        continue
+                    if abs(float(s.loc[wk]) - med) &gt; thr:
+                        s.loc[wk] = pd.NA
+                        missing.loc[wk] = True
+            else:
+                std = float(obs0.std(ddof=0))
+                if std &gt; 0:
+                    for wk in weeks_all:
+                        if pd.isna(s.loc[wk]) or pd.isna(n.loc[wk]):
+                            continue
+                        if float(n.loc[wk]) &gt; 3:
+                            continue
+                        if abs(float(s.loc[wk]) - med) &gt; 2.5 * std:
+                            s.loc[wk] = pd.NA
+                            missing.loc[wk] = True
+        filled = s.astype(float).interpolate(limit_direction="both")
+
+        if missing.any() and (~missing).sum() &gt;= 6:
+            try:
+                model = SARIMAX(
+                    filled.values,
+                    order=(1, 1, 1),
+                    seasonal_order=(0, 0, 0, 0),
+                    enforce_stationarity=False,
+                    enforce_invertibility=False,
+                )
+                res = model.fit(disp=False)
+                pred = res.get_prediction(start=0, end=len(filled) - 1).predicted_mean
+                filled = pd.Series(filled.values, index=weeks_all)
+                filled.loc[missing] = pd.Series(pred, index=weeks_all).loc[missing]
+            except Exception:
+                filled = pd.Series(filled.values, index=weeks_all)
+        else:
+            filled = pd.Series(filled.values, index=weeks_all)
+
+        obs = s.dropna().astype(float)
+        if not obs.empty:
+            mean = obs.mean()
+            low = max(obs.min() * 0.85, mean * 0.6, 1.0)
+            high = min(obs.max() * 1.15, mean * 1.6)
+            if low &gt; high:
+                low = max(obs.min() * 0.85, 1.0)
+                high = obs.max() * 1.15
+            filled = filled.clip(lower=low, upper=high)
+
+        # Only return the display window.
+        filled_disp = filled.reindex(weeks)
+        missing_disp = missing.reindex(weeks).fillna(True)
+        n_disp = n.reindex(weeks).fillna(0)
+        # Keep as int for display; it represents number of negotiations/trades used for that week.
+        try:
+            n_disp = n_disp.astype(int)
+        except Exception:
+            n_disp = pd.to_numeric(n_disp, errors="coerce").fillna(0).astype(int)
+        out = pd.DataFrame(
+            {
+                "produto": produto,
+                "week_start": weeks,
+                "week_label": [_week_range_label_from_start(w) for w in weeks],
+                "preco": filled_disp.values,
+                "imputado": missing_disp.values,
+                "negociacoes": n_disp.values,
+            }
+        )
+        frames.append(out)
+
+    return pd.concat(frames, ignore_index=True)</code></pre>
+<p>Trecho especifico de filtros (Hampel/spikes/baixa liquidez):</p>
+<pre><code class='language-python'>        # Hampel-style robust filter (rolling median/MAD) to remove clear spikes even when volume isn't tiny.
+        ser = s.astype(float).copy()
+        roll_med = ser.rolling(window=7, center=True, min_periods=5).median()
+        roll_mad = (ser - roll_med).abs().rolling(window=7, center=True, min_periods=5).median()
+        for wk in weeks_all:
+            if pd.isna(s.loc[wk]):
+                continue
+            ni = n.loc[wk]
+            # Don't touch very high-volume points.
+            if pd.notna(ni) and float(ni) &gt;= 20:
+                continue
+            mr = roll_med.loc[wk]
+            mad = roll_mad.loc[wk]
+            if pd.isna(mr) or pd.isna(mad) or float(mad) &lt;= 0:
+                continue
+            gap = abs(float(s.loc[wk]) - float(mr))
+            if gap &gt; 4.0 * float(mad) and gap &gt;= max(0.30 * float(mr), 60.0):
+                s.loc[wk] = pd.NA
+                missing.loc[wk] = True
+
+        # Spike filter: remove isolated jumps that don't persist (typical noise/outliers).
+        # This targets cases like a single week spiking up/down while neighbors stay near each other.
+        for i in range(1, len(weeks_all) - 1):
+            wk = weeks_all[i]
+            prev_wk = weeks_all[i - 1]
+            next_wk = weeks_all[i + 1]
+            if pd.isna(s.loc[wk]) or pd.isna(s.loc[prev_wk]) or pd.isna(s.loc[next_wk]):
+                continue
+            # Be conservative for higher-volume weeks.
+            n_i = n.loc[wk]
+            if pd.notna(n_i) and float(n_i) &gt; 10:
+                continue
+            prev_v = float(s.loc[prev_wk])
+            next_v = float(s.loc[next_wk])
+            cur_v = float(s.loc[wk])
+            neigh_med = float(pd.Series([prev_v, next_v]).median())
+            if neigh_med &lt;= 0:
+                continue
+            neigh_gap = abs(prev_v - next_v)
+            spike_gap = abs(cur_v - neigh_med)
+            # Neighbors are close, but current point is far (relative + absolute guard).
+            if neigh_gap &lt;= max(0.12 * neigh_med, 20.0) and spike_gap &gt;= max(0.30 * neigh_med, 60.0):
+                s.loc[wk] = pd.NA
+                missing.loc[wk] = True
+
+        # Two-week oscillation filter: remove high/low pairs that "bounce" back to baseline.
+        # Example: baseline -&gt; (high, low) -&gt; baseline.
+        for i in range(1, len(weeks_all) - 2):
+            wk0 = weeks_all[i - 1]
+            wk1 = weeks_all[i]
+            wk2 = weeks_all[i + 1]
+            wk3 = weeks_all[i + 2]
+            if pd.isna(s.loc[wk0]) or pd.isna(s.loc[wk1]) or pd.isna(s.loc[wk2]) or pd.isna(s.loc[wk3]):
+                continue
+            n1 = n.loc[wk1]
+            n2 = n.loc[wk2]
+            if pd.notna(n1) and float(n1) &gt; 10:
+                continue
+            if pd.notna(n2) and float(n2) &gt; 10:
+                continue
+            base = float(pd.Series([float(s.loc[wk0]), float(s.loc[wk3])]).median())
+            if base &lt;= 0:
+                continue
+            base_gap = abs(float(s.loc[wk0]) - float(s.loc[wk3]))
+            d1 = abs(float(s.loc[wk1]) - base)
+            d2 = abs(float(s.loc[wk2]) - base)
+            osc = abs(float(s.loc[wk1]) - float(s.loc[wk2]))
+            if base_gap &lt;= max(0.15 * base, 30.0) and max(d1, d2) &gt;= max(0.30 * base, 60.0) and osc &gt;= max(0.35 * base, 80.0):
+                s.loc[wk1] = pd.NA
+                s.loc[wk2] = pd.NA
+                missing.loc[wk1] = True
+                missing.loc[wk2] = True
+
+        # Outlier suppression: low-volume (&lt;=3) weeks outside 1 std are replaced via imputation.
+        for wk in weeks_all:
+            if pd.isna(s.loc[wk]) or pd.isna(n.loc[wk]):
+                continue
+            if float(n.loc[wk]) &gt; 3:
+                continue
+            if wk not in week_stats.index:
+                continue
+            mu = week_stats.loc[wk, "mean"]
+            sigma = week_stats.loc[wk, "std"]
+            if pd.isna(sigma) or float(sigma) &lt;= 0:
+                continue
+            if abs(float(s.loc[wk]) - float(mu)) &gt; float(sigma):
+                s.loc[wk] = pd.NA
+                missing.loc[wk] = True
+
+        # Additional robust filter: if a low-volume point is far from the product's typical level,
+        # treat it as noise and impute it (helps remove isolated spikes/dips).
+        obs0 = s.dropna().astype(float)
+        if not obs0.empty and len(obs0) &gt;= 6:
+            med = float(obs0.median())
+            mad = float((obs0 - med).abs().median())
+            # If MAD collapses to ~0, fallback to std-based filtering.
+            if mad &gt; 0:
+                thr = 3.5 * mad
+                for wk in weeks_all:
+                    if pd.isna(s.loc[wk]) or pd.isna(n.loc[wk]):
+                        continue
+                    if float(n.loc[wk]) &gt; 3:
+                        continue
+                    if abs(float(s.loc[wk]) - med) &gt; thr:
+                        s.loc[wk] = pd.NA
+                        missing.loc[wk] = True
+            else:
+                std = float(obs0.std(ddof=0))
+                if std &gt; 0:
+                    for wk in weeks_all:
+                        if pd.isna(s.loc[wk]) or pd.isna(n.loc[wk]):
+                            continue
+                        if float(n.loc[wk]) &gt; 3:
+                            continue
+                        if abs(float(s.loc[wk]) - med) &gt; 2.5 * std:
+                            s.loc[wk] = pd.NA
+                            missing.loc[wk] = True</code></pre>
+<p>Trecho da tabela (cores, setas, * e links):</p>
+<pre><code class='language-python'>    # Build a compact HTML table (products x weeks), mark imputations with red *.
+    def _fmt_ptbr(v: float) -&gt; str:
+        return f"{v:,.2f}".replace(",", "X").replace(".", ",").replace("X", ".")
+
+    pivot_price = plot_df.pivot(index="produto", columns="week_label", values="preco")
+    pivot_imp = plot_df.pivot(index="produto", columns="week_label", values="imputado")
+    pivot_price = pivot_price.reindex(columns=week_order).reindex(index=product_order)
+    pivot_imp = pivot_imp.reindex(columns=week_order).reindex(index=product_order)
+
+    # Sorting
+    if sort_by.startswith("Última"):
+        last_col = pivot_price.columns[-1] if len(pivot_price.columns) else None
+        if last_col:
+            order = pivot_price[last_col].sort_values(ascending=sort_by.endswith("(asc)")).index.tolist()
+            pivot_price = pivot_price.reindex(index=order)
+            pivot_imp = pivot_imp.reindex(index=order)
+
+    # Render as HTML for tighter control (font/row height/centering).
+    head = "".join([f"&lt;th&gt;{c}&lt;/th&gt;" for c in pivot_price.columns.tolist()])
+    rows = []
+    # Links use query params to open the dialog.
+    import html as _html
+    from urllib.parse import quote as _quote
+
+    _anchor_q = f"{anchor_week_start:%Y%m%d}"
+    for produto in pivot_price.index.tolist():
+        dot = product_colors.get(str(produto), "#94a3b8")
+        _p_q = _quote(str(produto))
+        _href = f"?bbce_view=product&amp;bbce_prod={_p_q}&amp;bbce_anchor={_anchor_q}"
+        # Build sparkline values from the row.
+        spark_vals = [pivot_price.loc[produto, c] if pd.notna(pivot_price.loc[produto, c]) else None for c in pivot_price.columns.tolist()]
+        spark = _sparkline(spark_vals, dot)
+        p_disp = _html.escape(str(produto))
+        row_label = (
+            f"&lt;a class='p-link' href='{_href}' target='_self'&gt;"
+            f"&lt;span class='p-dot' style='background:{dot}'&gt;&lt;/span&gt;"
+            f"&lt;span class='p-name'&gt;{p_disp}&lt;/span&gt;"
+            f"&lt;/a&gt;"
+            f"{spark}"
+        )
+        cells = []
+        for j, wk in enumerate(pivot_price.columns.tolist()):
+            v = pivot_price.loc[produto, wk]
+            imp = pivot_imp.loc[produto, wk]
+            if pd.isna(v):
+                cells.append("&lt;td&gt;—&lt;/td&gt;")
+                continue
+            star = "&lt;span class='imputed'&gt;*&lt;/span&gt;" if bool(imp) else ""
+            vv = float(v)
+            if vv &gt;= 260:
+                cls = "v-high"
+            elif vv &gt;= 220:
+                cls = "v-med"
+            elif vv &gt;= 200:
+                cls = "v-low"
+            else:
+                cls = "v-vlow"
+            # trend vs previous week in the same row
+            arrow = ""
+            if j &gt; 0:
+                prev = pivot_price.loc[produto, pivot_price.columns.tolist()[j - 1]]
+                if pd.notna(prev):
+                    d = vv - float(prev)
+                    if abs(d) &lt; 1e-6:
+                        arrow = "&lt;span class='t t-stable'&gt;◀&lt;/span&gt;"
+                    elif d &gt; 0:
+                        arrow = "&lt;span class='t t-up'&gt;▲&lt;/span&gt;"
+                    else:
+                        arrow = "&lt;span class='t t-down'&gt;▼&lt;/span&gt;"
+            cells.append(f"&lt;td class='{cls}'&gt;&lt;a class='c-link' href='{_href}' target='_self'&gt;{_fmt_ptbr(vv)}{star}{arrow}&lt;/a&gt;&lt;/td&gt;")
+        rows.append(f"&lt;tr&gt;&lt;th class='row-h'&gt;{row_label}&lt;/th&gt;{''.join(cells)}&lt;/tr&gt;")</code></pre>
+</div><div class='section' id='6-modulo-evolucao-da-geracao-e-intercambio-historico'><h2>6. Modulo: Evolucao da Geracao e Intercambio (historico)</h2>
+<p><strong>O que e:</strong> modulo historico (10 semanas) que integra um <strong>mapa de intercambio</strong> e graficos de <strong>despacho termico</strong> e <strong>geracao por fonte</strong>.</p>
+
+<p><strong>Para que serve:</strong> permitir diagnostico do equilibrio do SIN: onde a carga esta concentrada, quais fontes estao sustentando o atendimento e como os subsistemas estao importando/exportando energia.</p>
+
+
+<div class='mock'>
+  <div class='bar'>
+    <div class='t'>Evolucao da Geracao e Intercambio (historico)</div>
+    <div style='display:flex; gap:10px; flex-wrap:wrap'>
+      <span class='chip'>Mapa (intercambio + resumo por submercado)</span>
+      <span class='chip'>Despacho termico (barra empilhada)</span>
+      <span class='chip'>Geracao por fonte (area empilhada)</span>
+    </div>
+  </div>
+  <div style='margin-top:10px' class='grid'>
+    <div class='card'>
+      <div style='font-weight:800; color:#e5e7eb'>Mapa do Brasil</div>
+      <div style='margin-top:6px; color:var(--muted); font-family:var(--mono)'>Cores por subsistema + boxes com geracao/carga/intercambio. Clique seleciona subsistema.</div>
+    </div>
+    <div class='card'>
+      <div style='font-weight:800; color:#e5e7eb'>Graficos (10 semanas)</div>
+      <div style='margin-top:6px; color:var(--muted); font-family:var(--mono)'>Thermal dispatch por subsistema + total por fonte (solar/eolica/termica/hidraulica).</div>
+    </div>
+  </div>
+</div>
+
+
+<h3>Mapa de intercambio: o que mostra</h3>
+<ul>
+  <li><strong>Preenchimento do mapa</strong>: classifica estados por subsistema (Norte/Nordeste/SE-CO/Sul). Isso serve para orientacao espacial.</li>
+  <li><strong>Marcadores proporcionais</strong>: tamanho proporcional a |intercambio| e cor neutra (azul/cinza) para nao competir com o mapa.</li>
+  <li><strong>Boxes (tabelinhas)</strong>: resumo (MWmedios) por subsistema: hidraulica, termica, eolica, solar, carga, intercambio e classificacao (exportador/importador).</li>
+  <li><strong>Interatividade</strong>: clique no mapa seleciona um subsistema e os graficos historicos a direita sao filtrados/destacados.</li>
+</ul>
+
+<h3>Classificacao exportador/importador</h3>
+<pre><code class='language-text'>Se intercambio &gt;= 0 =&gt; Exportador; caso contrario =&gt; Importador</code></pre>
+<p>Interpretacao: exportador injeta energia liquida no SIN; importador depende de importacao liquida para atender carga (ou para otimizar geracao).</p>
+
+<h3>Graficos historicos (10 semanas)</h3>
+<ul>
+  <li><strong>Despacho termico (barra empilhada)</strong>: permite ver como a termica evolui e como se distribui por subsistema ao longo das semanas.</li>
+  <li><strong>Geracao por fonte (area empilhada)</strong>: permite ver mix total (solar/eolica/termica/hidraulica) e tendencias macro (ex: aumento de solar no verao).</li>
+  <li><strong>Eixo X</strong>: semana operativa (labels dd.mm a dd.mm). <strong>Eixo Y</strong>: MW.</li>
+</ul>
+
+<h3>Mapeamento para o codigo</h3>
+<pre><code class='language-python'>def render_generation_history_charts(</code></pre>
+<pre><code class='language-python'>def render_interchange_map(
+    bso_week_df: pd.DataFrame,
+    week_label: str | None = None,
+    *,
+    height: int = 620,
+    interactive: bool = True,
+) -&gt; str | None:
+    if bso_week_df.empty:
+        st.info("Sem dados de intercâmbio para exibir.")
+        return None
+
+    @st.cache_data(show_spinner=False)
+    def _load_geojson() -&gt; dict:
+        p = Path(__file__).resolve().parents[2] / "assets" / "brazil-states.geojson"
+        return json.loads(p.read_text(encoding="utf-8"))
+
+    geojson = _load_geojson()
+
+    # State -&gt; submarket (matching the user's reference map).
+    state_to_sub = {
+        # Norte
+        "AM": "Norte",
+        "AP": "Norte",
+        "PA": "Norte",
+        "RO": "Norte",
+        "TO": "Norte",
+        # Nordeste
+        "AL": "Nordeste",
+        "BA": "Nordeste",
+        "CE": "Nordeste",
+        "MA": "Nordeste",
+        "PB": "Nordeste",
+        "PE": "Nordeste",
+        "PI": "Nordeste",
+        "RN": "Nordeste",
+        "SE": "Nordeste",
+        # Sudeste/Centro-Oeste
+        "AC": "Sudeste/Centro-Oeste",  # user requested: Acre should be SE/CO
+        "DF": "Sudeste/Centro-Oeste",
+        "ES": "Sudeste/Centro-Oeste",
+        "GO": "Sudeste/Centro-Oeste",
+        "MG": "Sudeste/Centro-Oeste",
+        "MS": "Sudeste/Centro-Oeste",
+        "MT": "Sudeste/Centro-Oeste",
+        "RJ": "Sudeste/Centro-Oeste",
+        "SP": "Sudeste/Centro-Oeste",
+        # Sul
+        "PR": "Sul",
+        "RS": "Sul",
+        "SC": "Sul",
+        # Não conectado ao SIN (no mapa de referência)
+        "RR": "Não conectado ao SIN",
+    }
+
+    # Per-submarket values from the selected week.
+    submarkets = ["Sudeste/Centro-Oeste", "Sul", "Nordeste", "Norte"]
+    sub_rows: dict[str, dict[str, float | None]] = {k: {} for k in submarkets}
+    for _, r in bso_week_df.iterrows():
+        sub = str(r.get("submercado") or "")
+        if sub not in sub_rows:
+            continue
+        for key in ["hidraulica", "termica", "eolica", "solar", "carga", "intercambio"]:
+            v = r.get(key)
+            sub_rows[sub][key] = float(v) if pd.notna(v) else None
+
+    def fmt(v: float | None) -&gt; str:
+        if v is None or pd.isna(v):
+            return "—"
+        return f"{v:,.0f}".replace(",", "X").replace(".", ",").replace("X", ".")
+
+    def classify(v: float | None) -&gt; str:
+        if v is None or pd.isna(v):
+            return "—"
+        return "exportador" if v &gt;= 0 else "importador"
+
+    # Build per-state dataframe (values replicated from the submarket of that state).
+    rows = []
+    for sigla, sub_map in state_to_sub.items():
+        if sub_map in sub_rows:
+            m = sub_rows[sub_map]
+        else:
+            m = {}
+        rows.append(
+            {
+                "sigla": sigla,
+                "submercado_mapa": sub_map,
+                "hidraulica": m.get("hidraulica"),
+                "termica": m.get("termica"),
+                "eolica": m.get("eolica"),
+                "solar": m.get("solar"),
+                "carga": m.get("carga"),
+                "intercambio": m.get("intercambio"),
+                "classificacao": classify(m.get("intercambio")),
+            }
+        )
+    df = pd.DataFrame(rows)
+
+    # Professional, subdued blues (user request) aligned with the theme.
+    # The map fill represents submarkets (not export/import); export/import remains in the cards/boxes.
+    color_map = {
+        "Norte": "#93C5FD",  # blue-300
+        "Nordeste": "#60A5FA",  # blue-400
+        "Sudeste/Centro-Oeste": "#3B82F6",  # blue-500
+        "Sul": "#1E3A8A",  # blue-900
+        "Não conectado ao SIN": "#334155",  # slate-700
+    }
+
+    title = "Intercâmbio (mapa)"
+    if week_label:
+        title = f"{title} - {week_label}"
+
+    fig = px.choropleth(
+        df,
+        geojson=geojson,
+        locations="sigla",
+        featureidkey="properties.sigla",
+        color="submercado_mapa",
+        color_discrete_map=color_map,
+        category_orders={
+            "submercado_mapa": ["Sudeste/Centro-Oeste", "Sul", "Nordeste", "Norte", "Não conectado ao SIN"]
+        },
+        hover_data={
+            "sigla": True,
+            "submercado_mapa": True,
+            "hidraulica": ":.0f",
+            "termica": ":.0f",
+            "eolica": ":.0f",
+            "solar": ":.0f",
+            "carga": ":.0f",
+            "intercambio": ":.0f",
+            "classificacao": True,
+        },
+    )
+    fig.update_traces(
+        marker_line_color="rgba(245,247,250,0.40)",
+        marker_line_width=2.0,
+        marker_opacity=0.78,
+        hovertemplate=(
+            "&lt;b&gt;%{customdata[1]}&lt;/b&gt; — %{location}&lt;br&gt;"
+            "Hidráulica: %{customdata[2]:.0f} MW&lt;br&gt;"
+            "Térmica: %{customdata[3]:.0f} MW&lt;br&gt;"
+            "Eólica: %{customdata[4]:.0f} MW&lt;br&gt;"
+            "Solar: %{customdata[5]:.0f} MW&lt;br&gt;"
+            "Carga: %{customdata[6]:.0f} MW&lt;br&gt;"
+            "&lt;b&gt;Intercâmbio: %{customdata[7]:.0f} MW&lt;/b&gt;&lt;br&gt;"
+            "Classificação: %{customdata[8]}&lt;extra&gt;&lt;/extra&gt;"
+        ),
+    )
+    fig.update_layout(
+        title=dict(text=title, x=0.5, xanchor="center", font=dict(color="#F5F7FA", family="Space Grotesk, Inter, sans-serif")),
+        height=int(height),
+        margin=dict(l=0, r=0, t=50, b=0),
+        paper_bgcolor="rgba(0,0,0,0)",
+        plot_bgcolor="rgba(0,0,0,0)",
+        showlegend=False,
+    )
+    # Keep a stable framing so the map doesn't "jump" with layout changes.
+    fig.update_geos(
+        visible=False,
+        showframe=False,
+        showcountries=False,
+        showcoastlines=False,
+        showsubunits=True,
+        subunitcolor="rgba(125,211,252,0.28)",
+        center=dict(lat=-14.8, lon=-54.8),  # re-centered towards MT/GO
+        # Much smaller scale -&gt; lots of padding (user requested ~50% smaller again).
+        projection_scale=0.80,
+        # Tighten vertical range to reduce empty space: RR near the top, small slack below Sul.
+        lataxis_range=[-34.5, 5.8],
+        lonaxis_range=[-75, -33],
+        bgcolor="rgba(0,0,0,0)",
+    )
+
+    # Proportional symbol overlay (size by |intercambio|, color by exporter/importer).
+    # Keep it subtle so it reads as an overlay, not a second chart.
+    centers = {
+        "Norte": (-4.5, -62.0),
+        "Nordeste": (-7.5, -39.0),
+        "Sudeste/Centro-Oeste": (-16.0, -51.5),
+        "Sul": (-28.5, -52.0),
+    }
+    inter_abs = []
+    for sub in ["Sudeste/Centro-Oeste", "Sul", "Nordeste", "Norte"]:
+        v = sub_rows.get(sub, {}).get("intercambio")
+        if v is not None and pd.notna(v):
+            inter_abs.append(abs(float(v)))
+    mx = max(inter_abs) if inter_abs else 1.0
+    for sub, (lat, lon) in centers.items():
+        v = sub_rows.get(sub, {}).get("intercambio")
+        if v is None or pd.isna(v):
+            continue
+        vv = float(v)
+        size = 10 + 28 * (abs(vv) / mx if mx &gt; 0 else 0)
+        # Keep markers in a calm blue/neutral style (no strong neon).
+        col = "rgba(96,165,250,0.35)" if vv &gt;= 0 else "rgba(148,163,184,0.35)"
+        fig.add_trace(
+            go.Scattergeo(
+                lat=[lat],
+                lon=[lon],
+                mode="markers",
+                marker=dict(size=size, color=col, line=dict(width=1.2, color="rgba(245,247,250,0.45)")),
+                hovertemplate=f"&lt;b&gt;{sub}&lt;/b&gt;&lt;br&gt;Intercâmbio: {fmt(vv)} MW&lt;br&gt;Classificação: {classify(vv)}&lt;extra&gt;&lt;/extra&gt;",
+                showlegend=False,
+            )
+        )
+
+    # Overlay summary boxes on top of the map (avoid overlaps with tuned positions).
+    def box_text(sub: str, m: dict[str, float | None]) -&gt; str:
+        return (
+            f"&lt;b&gt;{sub}&lt;/b&gt;&lt;br&gt;"
+            f"&lt;span style='opacity:.85'&gt;Fonte | Quantidade&lt;/span&gt;&lt;br&gt;"
+            f"Hidráulica: {fmt(m.get('hidraulica'))}&lt;br&gt;"
+            f"Térmica: {fmt(m.get('termica'))}&lt;br&gt;"
+            f"Eólica: {fmt(m.get('eolica'))}&lt;br&gt;"
+            f"Solar: {fmt(m.get('solar'))}&lt;br&gt;"
+            f"Carga: {fmt(m.get('carga'))}&lt;br&gt;"
+            f"Intercâmbio: {fmt(m.get('intercambio'))}&lt;br&gt;"
+            f"&lt;span style='opacity:.9'&gt;Classificação: {classify(m.get('intercambio'))}&lt;/span&gt;"
+        )
+
+    def add_box(
+        lat: float,
+        lon: float,
+        text: str,
+        size: int = 120,
+        bg: str | None = None,
+        font_size: int = 11,
+    ) -&gt; None:
+        # Near-solid dark panel so white text pops (user request).
+        box_bg = bg or "rgba(15,23,34,0.94)"
+        fig.add_trace(
+            go.Scattergeo(
+                lat=[lat],
+                lon=[lon],
+                mode="markers+text",
+                marker=dict(
+                    size=size,
+                    symbol="square",
+                    color=box_bg,
+                    line=dict(width=1.35, color="rgba(125,211,252,0.35)"),
+                ),
+                text=[text],
+                textposition="middle center",
+                textfont=dict(color="#F5F7FA", size=font_size, family="Inter, sans-serif"),
+                hoverinfo="skip",
+                showlegend=False,
+            )
+        )
+
+    # Hand-tuned placement (lat, lon) to prevent overlaps and keep inside Brazil view.
+    placements = {
+        "Norte": (-2.5, -67.0),
+        "Nordeste": (-7.0, -36.0),
+        # Bring SE/CO closer to the map center (near MT) to reduce overlap with Sul.
+        "Sudeste/Centro-Oeste": (-15.8, -54.0),
+        "Sul": (-31.0, -47.5),
+    }
+
+    for sub, (lat, lon) in placements.items():
+        m = sub_rows.get(sub, {})
+        add_box(lat, lon, box_text(sub, m), size=130, bg="rgba(15,23,34,0.94)", font_size=11)
+
+    # Itaipu box: keep a bit to the left to avoid overlapping any submarket.
+    itaipu_val = bso_week_df["itaipu"].dropna().head(1).squeeze() if "itaipu" in bso_week_df.columns else None
+    itaipu_val = float(itaipu_val) if pd.notna(itaipu_val) else None
+    if itaipu_val is not None:
+        itaipu_text = f"&lt;b&gt;Itaipu&lt;/b&gt;&lt;br&gt;Despacho: {fmt(itaipu_val)}"
+        # Keep compact; content is short and should not look like the other submarket tables.
+        add_box(-24.5, -63.5, itaipu_text, size=50, bg="rgba(15,23,34,0.94)", font_size=10)
+
+    config = dict(
+        responsive=True,
+        displayModeBar=True,
+        displaylogo=False,
+        scrollZoom=True,
+        modeBarButtonsToRemove=["lasso2d", "select2d"],
+    )
+
+    selected_sub: str | None = None
+    if interactive and plotly_events is not None:
+        pts = plotly_events(fig, click_event=True, hover_event=False, select_event=False, override_height=int(height), key=f"map_{week_label}")
+        if pts:
+            loc = pts[0].get("location")
+            if loc:
+                selected_sub = state_to_sub.get(str(loc))
+    else:
+        st.plotly_chart(fig, use_container_width=True, config=config)
+
+    # Minimal legend (floating-ish) below map.
+    st.markdown(
+        f"""
+&lt;div style="display:flex;gap:10px;justify-content:center;margin-top:6px;flex-wrap:wrap"&gt;
+  &lt;div class="chip"&gt;&lt;span style="display:inline-block;width:10px;height:10px;border-radius:999px;background:{color_map['Sudeste/Centro-Oeste']};margin-right:8px"&gt;&lt;/span&gt;SE/CO&lt;/div&gt;
+  &lt;div class="chip"&gt;&lt;span style="display:inline-block;width:10px;height:10px;border-radius:999px;background:{color_map['Sul']};margin-right:8px"&gt;&lt;/span&gt;Sul&lt;/div&gt;
+  &lt;div class="chip"&gt;&lt;span style="display:inline-block;width:10px;height:10px;border-radius:999px;background:{color_map['Nordeste']};margin-right:8px"&gt;&lt;/span&gt;Nordeste&lt;/div&gt;
+  &lt;div class="chip"&gt;&lt;span style="display:inline-block;width:10px;height:10px;border-radius:999px;background:{color_map['Norte']};margin-right:8px"&gt;&lt;/span&gt;Norte&lt;/div&gt;
+  &lt;div class="chip"&gt;&lt;span style="display:inline-block;width:10px;height:10px;border-radius:999px;background:{color_map['Não conectado ao SIN']};margin-right:8px"&gt;&lt;/span&gt;Fora SIN&lt;/div&gt;
+&lt;/div&gt;
+""",
+        unsafe_allow_html=True,
+    )
+
+    return selected_sub</code></pre>
+</div><div class='section' id='7-metodologias-e-regras-de-analise-cores-setas-filtros'><h2>7. Metodologias e Regras de Analise (cores, setas, filtros)</h2>
+<p>Esta secao consolida as regras de analise implementadas no dashboard e como o usuario deve interpreta-las.</p>
+
+<h3>1) Semana operativa</h3>
+<ul>
+  <li>Definicao: semana operativa = sabado a sexta (chave para agregacao e comparacao).</li>
+  <li>Uso: recorta historicos e organiza a leitura temporal (S-2, S-1, S).</li>
+</ul>
+
+<h3>2) Cores semanticas</h3>
+<ul>
+  <li><span class='dot good'></span> <strong>Bom</strong>: condicao favoravel (ex: ENA alta, PLD baixo).</li>
+  <li><span class='dot warn'></span> <strong>Atencao</strong>: faixa intermediaria (condicao de transicao/alerta).</li>
+  <li><span class='dot bad'></span> <strong>Critico</strong>: condicao desfavoravel (ex: ENA muito baixa, PLD muito alto).</li>
+  <li><span class='dot ctx'></span> <strong>Contextual</strong>: nao e “bom/ruim” por si; depende do contexto (ex: carga).</li>
+</ul>
+
+<h3>3) Setas de tendencia</h3>
+<ul>
+  <li><span class='arrow up'>▲</span> indica melhora (ou aumento, conforme indicador).</li>
+  <li><span class='arrow down'>▼</span> indica piora (ou queda).</li>
+  <li><span class='arrow stable'>◀</span> indica estabilidade (variacao ~ 0).</li>
+</ul>
+<p>Formalmente: Δ = atual − anterior. Para indicadores “menor e melhor”, a interpretacao do sinal e invertida.</p>
+
+<h3>4) Ruido e imputacao em BBCE</h3>
+<ul>
+  <li>Objetivo: evitar que poucos negocios atipicos distorcam conclusoes.</li>
+  <li>Metodo: filtros robustos + substituicao por imputacao (marcada com *).</li>
+</ul>
+
+<h3>5) Selecao interativa por subsistema (mapa)</h3>
+<ul>
+  <li>Objetivo: permitir analise focada por subsistema sem reconfigurar o dashboard inteiro.</li>
+  <li>Implementacao: clique no mapa seta <code>st.session_state['selected_submercado']</code> e filtra historicos.</li>
+</ul>
+</div><div class='section' id='8-modelos-de-machine-learning-prophet-e-sarimax-e-uso-no-dashboard'><h2>8. Modelos de Machine Learning (Prophet e SARIMAX) e uso no dashboard</h2>
+<p>O projeto implementa dois modelos baseline para series temporais de preco BBCE:</p>
+<ul>
+  <li><strong>Prophet</strong> (Meta): modelagem com componentes de tendencia e sazonalidades.</li>
+  <li><strong>SARIMAX</strong> (statsmodels): ARIMA sazonal com capacidade de incorporar estrutura temporal (e, potencialmente, regressoras).</li>
+</ul>
+
+<h3>Por que esses modelos</h3>
+<ul>
+  <li>Ambos sao adequados como baseline para TCC: interpretaveis, bem documentados e com implementacoes consolidadas.</li>
+  <li>SARIMAX e particularmente util para <strong>imputacao</strong> e previsao de curto prazo quando a serie possui falhas ou ruido.</li>
+</ul>
+
+<h3>Como o SARIMAX e utilizado no dashboard (imputacao para BBCE)</h3>
+<p>No modulo <strong>Precos Medios BBCE</strong>, a serie semanal por produto pode ter semanas sem negociacao (ou removidas por filtros). Para manter continuidade visual e permitir leitura de tendencia, o dashboard:</p>
+<ol>
+  <li>Interpola a serie para obter um baseline suave;</li>
+  <li>Se houver dados suficientes, ajusta SARIMAX(1,1,1) e usa as previsoes in-sample para preencher apenas os pontos faltantes;</li>
+  <li>Aplica clamp para manter os imputados em uma banda plausivel;</li>
+  <li>Marca os pontos imputados com <strong>*</strong> vermelho.</li>
+</ol>
+
+<h3>Treino (modelos persistidos)</h3>
+<p>O treino baseline existente persiste modelos em disco (<code>data/models/</code>) e registra metadados em <code>ml_models</code> (MAE/RMSE/MAPE). Para series curtas, o sistema salva um baseline "naive_last".</p>
+<pre><code class='language-python'>def train_sarimax(product: str, model_dir: Path) -&gt; dict[str, str | dict]:
+    df = load_bbce(product)
+    if df.empty:
+        raise RuntimeError(f"No BBCE data available for product {product}")
+
+    y = _prepare_daily_series(df)
+    if len(y) &lt; 10:
+        last = float(y.iloc[-1]) if len(y) else None
+        model_dir.mkdir(parents=True, exist_ok=True)
+        model_path = model_dir / f"sarimax_{_safe_filename(product)}.pkl"
+        with model_path.open("wb") as handle:
+            pickle.dump({"kind": "naive_last", "last": last}, handle)
+        return {
+            "model_name": f"SARIMAX_{product}",
+            "model_type": "naive_last",
+            "product_type": df["tipo_produto"].dropna().unique().tolist()[0] if "tipo_produto" in df else None,
+            "horizon": "12w",
+            "metrics": {"mae": None, "rmse": None, "mape": None},
+            "model_path": str(model_path),
+        }
+
+    train_y, test_y = _train_test_split(y.reset_index(drop=True).to_frame(name="y"))
+    train_series = train_y["y"]
+    test_series = test_y["y"]
+
+    model = SARIMAX(
+        train_series,
+        order=(1, 1, 1),
+        seasonal_order=(1, 0, 1, 7),
+        enforce_stationarity=False,
+        enforce_invertibility=False,
+    )
+    results = model.fit(disp=False)
+
+    if not test_series.empty:
+        forecast = results.get_forecast(steps=len(test_series))
+        metrics = _evaluate(test_series.values, forecast.predicted_mean.values)
+    else:
+        metrics = {"mae": None, "rmse": None, "mape": None}
+
+    model_dir.mkdir(parents=True, exist_ok=True)
+    model_path = model_dir / f"sarimax_{_safe_filename(product)}.pkl"
+    with model_path.open("wb") as handle:
+        pickle.dump(results, handle)
+
+    return {
+        "model_name": f"SARIMAX_{product}",
+        "model_type": "sarimax",
+        "product_type": df["tipo_produto"].dropna().unique().tolist()[0] if "tipo_produto" in df else None,
+        "horizon": "12w",
+        "metrics": metrics,
+        "model_path": str(model_path),
+    }</code></pre>
+
+<h3>Como interpretar o uso de ML no contexto do dashboard</h3>
+<ul>
+  <li><strong>Imputacao</strong> nao e “previsao de mercado” para tomada de decisao; e uma tecnica para evitar buracos e ruido na visualizacao.</li>
+  <li>Os valores imputados sao explicitamente marcados (*), preservando transparencia metodologica.</li>
+  <li>Para previsao operacional (1w/4w/12w) o baseline existe no pipeline, mas o modulo de previsao pode estar desativado conforme estrategia do usuario.</li>
+</ul>
+</div><div class='section' id='9-limitacoes-e-trabalhos-futuros'><h2>9. Limitacoes e Trabalhos Futuros</h2>
+<ul>
+  <li><strong>Limites de dados BBCE:</strong> baixa liquidez em alguns contratos e semanas. O dashboard trata isso com filtros e imputacao, mas a interpretacao deve sempre considerar a coluna de negociacoes e o marcador *.</li>
+  <li><strong>Thresholds fixos:</strong> faixas (ENA/EAR/CMO/PLD) sao heuristicas. Podem ser calibradas com dados historicos e criterios de negocio.</li>
+  <li><strong>ML baseline:</strong> Prophet/SARIMAX ainda nao incorpora variaveis exogenas (BSO/PLD/CMO) no treinamento principal, o que limita capacidade explicativa/causal.</li>
+</ul>
+
+<h3>Trabalhos futuros (sugeridos)</h3>
+<ul>
+  <li>Validacao walk-forward e comparacao multi-modelo (ARIMAX com exog, RF/XGBoost, ensembles).</li>
+  <li>Registro de metricas por produto/horizonte e dashboards de performance.</li>
+  <li>Explicabilidade (feature importance/SHAP) quando modelos supervisionados forem introduzidos.</li>
+  <li>Calibracao estatistica dos thresholds (quantis/risco) para zonas BBCE e faixas de ENA/EAR.</li>
+</ul>
+</div><div class='footer'>Documento gerado automaticamente a partir do codigo do dashboard. Exemplos ilustrativos sao representacoes didaticas (mockups) para explicar interpretacao e metodologia.</div></div></body></html>
